@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 100%; }
+    </style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  </head>
+  <body>
+	<div id="selector">
+		<select name="Candidates" onchange="selected(event);">
+			<option value="All">All</option>
+			<option value="Sanders">Sanders</option>
+			<option value="Clinton">Clinton</option>
+			<option value="Webb">Webb</option>
+			<option value="O'Malley">O'Malley</option>
+			<option value="Trump">Trump</option>
+			<option value="Bush">Bush</option>
+			<option value="Carson">Carson</option>
+			<option value="Fiorina">Fiorina</option>
+		</select>
+	</div>
+    <div id="map"></div>
+    <script type="text/javascript">
+
+var map;
+var heatmap;
+var store = [];
+var heatmapData = [];
+var host = "ws://ENVIRONMENT_URL_HERE:8080/PROJECT_NAME_HERE/actions";
+var socket;
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: 31, lng: -97 },
+    zoom: 4,
+    mapTypeId: google.maps.MapTypeId.SATELLITE
+  });
+
+  google.maps.event.addListenerOnce(map, 'idle', function() {
+	  heatmap = new google.maps.visualization.HeatmapLayer({
+		data: heatmapData,
+	    dissipating: false
+	  });
+	  heatmap.setMap(map);
+  })
+  
+  if(!("WebSocket" in window)) {
+	} else {
+		socket = new WebSocket(host);
+		connect();
+	}
+}
+
+setTimeout("location.reload(true)", 60000);
+
+function loadGeoJsonString(geoString) {
+	var geojson = JSON.parse(geoString);
+	map.data.addGeoJson(geojson);
+}
+
+function addDataPoint(point) {
+	var feature = new google.maps.Data.Feature();
+	var latlng = new google.maps.LatLng(point.Latitude, point.Longitude, true);
+	feature.setGeometry(latlng);
+	map.data.add(feature);
+	heatmapData.push(latlng);
+}
+
+function addCandidate(name) {
+	for (var i = 0; i < store.length; i++) {
+		if (store[i][name]) {
+			addDataPoint(store[i]);
+		}
+	}
+}
+
+function addAllPoints() {
+	for (var i = 0; i < store.length; i++) {
+		addDataPoint(store[i]);
+	}
+}
+
+function clearData() {
+	map.data.forEach(function(feature) {
+		map.data.remove(feature);
+	});
+	heatmapData = [];
+}
+
+function selected(event) {
+	console.log(event.target.value + " selected.");
+	clearData();
+	if (event.target.value === "All") {
+		addAllPoints();
+	} else {
+		addCandidate(event.target.value);
+	}
+}
+
+    </script>
+    <script src="websocket.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/json2/20150503/json2.min.js" type="text/javascript"></script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=API_KEY_HERE&libraries=visualization&sensor=true_or_false&callback=initMap"
+      type="text/javascript">
+    </script>
+  </body>
+</html>
